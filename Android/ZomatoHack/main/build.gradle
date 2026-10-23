@@ -1,12 +1,19 @@
 apply plugin: 'com.android.feature'
 
+def apiBaseUrl = (project.findProperty("apiBaseUrl") ?: "http://10.0.2.2:8000").toString().replaceAll('/+$', '')
+
 android {
     compileSdkVersion 26
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
     defaultConfig {
         minSdkVersion 26
         targetSdkVersion 26
         versionCode 1
         versionName "1.0"
+        buildConfigField "String", "API_BASE_URL", groovy.json.JsonOutput.toJson(apiBaseUrl)
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
     }
     buildTypes {

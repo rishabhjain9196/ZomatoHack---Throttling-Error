@@ -8,6 +8,11 @@ android {
         targetSdkVersion 26
         versionCode 1
         versionName "1.0"
+        def mapsApiKey = System.getenv("GOOGLE_MAPS_API_KEY")
+        if (!mapsApiKey) {
+            throw new GradleException("Set GOOGLE_MAPS_API_KEY before building the archived Android client.")
+        }
+        resValue "string", "google_maps_key", mapsApiKey
     }
     buildTypes {
         release {

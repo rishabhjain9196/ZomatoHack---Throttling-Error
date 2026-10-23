@@ -1,0 +1,130 @@
+[
+  {
+    "model": "heatmap.block",
+    "pk": 1,
+    "fields": {
+      "name": "Koramangala",
+      "latitude": "12.9279",
+      "longitude": "77.6271",
+      "resources": 84,
+      "orders": 0
+    }
+  },
+  {
+    "model": "heatmap.block",
+    "pk": 2,
+    "fields": {
+      "name": "Indira Nagar",
+      "latitude": "12.9719",
+      "longitude": "77.6412",
+      "resources": 99,
+      "orders": 0
+    }
+  },
+  {
+    "model": "heatmap.block",
+    "pk": 3,
+    "fields": {
+      "name": "Jayanagar",
+      "latitude": "12.925",
+      "longitude": "77.5938",
+      "resources": 82,
+      "orders": 0
+    }
+  },
+  {
+    "model": "heatmap.block",
+    "pk": 4,
+    "fields": {
+      "name": "J. P. Nagar",
+      "latitude": "12.9105",
+      "longitude": "77.5857",
+      "resources": 33,
+      "orders": 0
+    }
+  },
+  {
+    "model": "heatmap.block",
+    "pk": 5,
+    "fields": {
+      "name": "HSR Layout",
+      "latitude": "12.9081",
+      "longitude": "77.6476",
+      "resources": 33,
+      "orders": 0
+    }
+  },
+  {
+    "model": "heatmap.block",
+    "pk": 6,
+    "fields": {
+      "name": "Whitefield",
+      "latitude": "12.9698",
+      "longitude": "77.7499",
+      "resources": 30,
+      "orders": 0
+    }
+  },
+  {
+    "model": "heatmap.block",
+    "pk": 7,
+    "fields": {
+      "name": "BTM Layout",
+      "latitude": "12.9166",
+      "longitude": "77.6101",
+      "resources": 31,
+      "orders": 0
+    }
+  },
+  {
+    "model": "heatmap.block",
+    "pk": 8,
+    "fields": {
+      "name": "Electronic City",
+      "latitude": "12.8399",
+      "longitude": "77.677",
+      "resources": 34,
+      "orders": 0
+    }
+  },
+  {
+    "model": "heatmap.block",
+    "pk": 9,
+    "fields": {
+      "name": "Yeswanthpur",
+      "latitude": "13.028",
+      "longitude": "77.5409",
+      "resources": 35,
+      "orders": 0
+    }
+  },
+  {
+    "model": "heatmap.block",
+    "pk": 10,
+    "fields": {
+      "name": "Vijayanagar",
+      "latitude": "12.9719",
+      "longitude": "77.5299",
+      "resources": 31,
+      "orders": 0
+    }
+  },
+  {
+    "model": "heatmap.driverlocation",
+    "pk": 1,
+    "fields": {
+      "name": "Alex",
+      "latitude": "13.028",
+      "longitude": "77.5409"
+    }
+  },
+  {
+    "model": "heatmap.driverlocation",
+    "pk": 2,
+    "fields": {
+      "name": "Alex",
+      "latitude": "12.9719",
+      "longitude": "77.6412"
+    }
+  }
+]

@@ -1,11 +1,4 @@
 from django.db import models
-from django.contrib.postgres.fields import ArrayField
-
-# class Orders(models.Model):
-#     rest_id = models.IntegerField(default=0)
-#     time = models.DateTimeField(auto_now_add=True)
-#     lat = models.DecimalField(max_digits=12, decimal_places=2)
-#     long = models.DecimalField(max_digits=12, decimal_places=2)
 
 class Block(models.Model):
     latitude = models.DecimalField(max_digits=6, decimal_places=4)

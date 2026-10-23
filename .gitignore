@@ -4,3 +4,14 @@
 
 /.vs/slnx.sqlite
 /.vs/slnx.sqlite-journal
+
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+backend/dev/demo.sqlite3
+backend/dev/demo.sqlite3-*
+backend/venv/
+*.log
+.DS_Store
+~$*

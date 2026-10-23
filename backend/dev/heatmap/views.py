@@ -1,122 +1,113 @@
-from django.http import HttpResponse
-from rest_framework import permissions, status
-from rest_framework.views import APIView
-from rest_framework.response import Response
+import logging
+
+from django.db import transaction
+from django.http import JsonResponse
 from rest_framework import status
-from . import models
-from . import utils, intelligence
-import numpy as np
-from decimal import Decimal
-from django.core.exceptions import ObjectDoesNotExist
+from rest_framework.response import Response
+from rest_framework.views import APIView
+
+from . import models, utils
+from .serializers import DriverLocationSerializer, HeatmapQuerySerializer
+
+logger = logging.getLogger(__name__)
 
 
 def index(request):
-    return HttpResponse("Hey! This is the Heatmap Back Health Check Endpoint! All looks good here!")
+    return JsonResponse({"status": "ok", "mode": "local synthetic-data demo"})
 
 
 class update_location(APIView):
-    """
-        GET: Update Location of a driver in database
-    """
     authentication_classes = ()
     permission_classes = ()
 
     def get(self, request):
-        """
-        :return: Health API check
-        """
-        return Response({'status': 'All good!'}, status=status.HTTP_200_OK)
-    
+        return Response({"detail": "POST id, latitude and longitude to update a demo driver."})
+
+    @transaction.atomic
     def post(self, request):
-        """
-        :return: Update Driver Location
-        """
-        data = request.data
-        # serializer = DriverLocationSerializer(data = data)
-        # if serializer.is_valid():
-        #     serializer.save()
-        req_key = ['id', 'latitude', 'longitude']
-        
-        id = int(data[req_key[0]])
-        lat = Decimal(data[req_key[1]])
-        lon = Decimal(data[req_key[2]])
+        serializer = DriverLocationSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+        blocks = list(models.Block.objects.select_for_update().order_by("id"))
+        if [block.pk for block in blocks] != list(range(1, utils.ZONE_COUNT + 1)):
+            return Response({"detail": "Load the ten original demo zones before updating locations."}, status=503)
+        new_block = utils.find_block(data["latitude"], data["longitude"], blocks)
+        driver = models.DriverLocation.objects.select_for_update().filter(pk=data["id"]).first()
+        # These are resource weights from the hackathon demonstration, not fleet counts.
+        weight = 7 if data["id"] == 1 else 10
+        created = driver is None
+        if created:
+            driver = models.DriverLocation(id=data["id"])
+            new_block.resources += weight
+            new_block.save(update_fields=["resources"])
+            message = f"Registered in {new_block.name}."
+        else:
+            old_block = utils.find_block(driver.latitude, driver.longitude, blocks)
+            if old_block.pk != new_block.pk:
+                if old_block.resources < weight:
+                    return Response(
+                        {"detail": "The origin zone has insufficient demo resource units."},
+                        status=status.HTTP_409_CONFLICT,
+                    )
+                old_block.resources -= weight
+                new_block.resources += weight
+                old_block.save(update_fields=["resources"])
+                new_block.save(update_fields=["resources"])
+            message = f"You moved from {old_block.name} to {new_block.name}."
+        driver.latitude = data["latitude"]
+        driver.longitude = data["longitude"]
+        driver.save()
+        return Response(
+            {"id": driver.pk, "lat": driver.latitude, "lon": driver.longitude, "toast_text": message},
+            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
+        )
 
-        try:
-            driver = models.DriverLocation.objects.get(pk=id)
-            old_lat = driver.latitude
-            old_lon = driver.longitude
-
-
-            utils.print_blocks_data()
-            print("---------------------")
-            old_block = utils.find_block(old_lat, old_lon)
-            new_block = utils.find_block(lat, lon)
-
-            weight = 10
-            if id == 1:
-                weight = 7
-            old_block.resources = old_block.resources - weight
-            new_block.resources = new_block.resources + weight
-            old_block.save()
-            new_block.save()
-            
-            s = "You moved from " + old_block.name + " to " + new_block.name + "!"
-            print("Logging Data: ", s)
-            driver.latitude = lat
-            driver.longitude = lon
-
-            utils.print_blocks_data()
-
-            driver.save()
-        except ObjectDoesNotExist:
-            new_obj = models.DriverLocation.objects.create(longitude=lon, latitude=lat)
-            new_obj.save()
-            return Response({'id': id, 'lat': lat , 'lon': lon}, status=status.HTTP_200_OK)
-
-        return Response({'toast_text': s}, status=status.HTTP_200_OK)
 
 class get_heatmap(APIView):
-    """
-        GET: For viewing all products
-    """
     authentication_classes = ()
     permission_classes = ()
 
     def get(self, request):
-        """
-        :return: Response containing JSON data, with all the details of single products.
-        """
-        ny = 'NewYearData'
-        s = 'SundayData'
-        m = 'MondayData'
+        serializer = HeatmapQuerySerializer(data=request.query_params)
+        serializer.is_valid(raise_exception=True)
+        query = serializer.validated_data
+        blocks = list(models.Block.objects.order_by("id"))
+        if [block.pk for block in blocks] != list(range(1, utils.ZONE_COUNT + 1)):
+            return Response({"detail": "Load the ten original demo zones in ID order."}, status=503)
+        try:
+            slot, demand = utils.get_csv_data(query["scenario"], query.get("time"))
+        except (OSError, ValueError) as error:
+            logger.exception("The synthetic demand profile could not be read.")
+            return Response({"detail": str(error)}, status=503)
+        zones = []
+        for block, value in zip(blocks, demand):
+            zones.append({
+                "id": block.pk,
+                "name": block.name,
+                "latitude": float(block.latitude),
+                "longitude": float(block.longitude),
+                "demand": value,
+                "resource_units": block.resources,
+                "score": value / max(block.resources, 1),
+                "denominator_floored": block.resources <= 0,
+            })
+        coordinates = [value for zone in zones for value in (zone["latitude"], zone["longitude"])]
+        legacy = coordinates + [zone["score"] for zone in zones]
+        return Response({
+            "scenario": query["scenario"],
+            "time": slot,
+            "source": "synthetic CSV profile; not live LSTM inference",
+            "zones": zones,
+            "response": ",".join(map(str, legacy)) + ",",
+        })
 
-        # Get Data from ML
-        numerator = utils.get_csv_data(ny)
-        print("numerator: ", numerator)
-        # Get RealTime Driver Stats
-        denominator = utils.get_driver_stats()
-        print("den: ", denominator)
-        # print(intelligence.predict(np.array([2,10,10,5,200,40,14,10,6,32])))
-
-        final_data = [n/d for n,d in zip(numerator, denominator)]
-        print ("final: ", final_data)
-        lat_lon = utils.get_all_lat_lon()
-        s = ""
-        for d in lat_lon:
-            s = s + str(d) + "," 
-        for v in final_data:
-            s = s + str(v) + ","
-        return Response({'response': s}, status=status.HTTP_200_OK)
 
 class get_next_data(APIView):
-    """
-        GET: For viewing all products
-    """
     authentication_classes = ()
     permission_classes = ()
 
     def get(self, request):
-        """
-        :return: Response containing JSON data, with all the details of single products.
-        """
-        return Response({'status': ''}, status=status.HTTP_200_OK)
+        return Response(
+            {"detail": "Live model inference is not connected. Use get_heatmap for the CSV demo."},
+            status=status.HTTP_501_NOT_IMPLEMENTED,
+        )

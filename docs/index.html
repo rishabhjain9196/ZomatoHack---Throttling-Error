@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="A visual review of Team Throttling-Error's 2019 Zomato workforce heatmap prototype, its synthetic data, architecture and limitations.">
+  <meta name="theme-color" content="#17343b">
+  <title>Demand-Supply Workforce Heatmaps in 2019</title>
+  <link rel="stylesheet" href="report.css">
+  <script src="report-data.js" defer></script>
+  <script src="report.js" defer></script>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to the report</a>
+  <header class="topbar">
+    <a class="wordmark" href="#top">THROTTLING-ERROR <span>/ 2019</span></a>
+    <nav aria-label="Report sections">
+      <a href="#explore">Explore</a><a href="#analysis">Analysis</a><a href="#method">Method</a><a href="#conclusion">Conclusion</a>
+    </nav>
+  </header>
+  <main id="main">
+    <section class="hero" id="top">
+      <div>
+        <p class="eyebrow">Zomato Hackanoodle Scale Hackathon, 2019</p>
+        <h1>Where should the<br>workforce move?</h1>
+        <p class="lead">Demand alone does not tell the whole story. Our team built a prototype that compared synthetic demand with available resource units across ten Bengaluru zones.</p>
+        <div class="recognition"><strong>Our team placed third nationally.</strong><span>We presented the prototype to Deepinder Goyal.</span></div>
+        <div class="hero-links"><a class="button" href="#explore">Explore the prototype</a><a href="https://github.com/rishabhjain9196/ZomatoHack---Throttling-Error">View the repository</a></div>
+      </div>
+      <aside class="hero-note">
+        <p class="eyebrow">The decision loop</p>
+        <ol><li>Estimate demand for each zone.</li><li>Compare demand with available supply.</li><li>Show the relative pressure on a map.</li><li>Let the workforce decide whether to move.</li></ol>
+        <p>This was a team hackathon prototype, not a deployed allocation system.</p>
+      </aside>
+    </section>
+    <div class="notice"><strong>Read this as a synthetic-data study.</strong> The project dates to 2019. This report reconstructs its artifacts in 2026. It does not measure real orders, fleet size, earnings or operational improvement.</div>
+    <div class="metrics" aria-label="Dataset summary">
+      <div><strong>10</strong><span>Bengaluru demo zones</span></div>
+      <div><strong>3</strong><span>Synthetic daily scenarios</span></div>
+      <div><strong>10 min</strong><span>Profile resolution</span></div>
+      <div><strong>28 days</strong><span>Synthetic training sequence</span></div>
+    </div>
+    <noscript><div class="notice"><strong>Interactive charts need JavaScript.</strong> The methods, limitations and conclusion remain readable. <a href="profiles.csv">Download the chart data as CSV.</a></div><img class="fallback" src="cover.svg" alt="Static overview of the ten-zone workforce heatmap project and its synthetic-data scope."></noscript>
+    <p id="load-error" class="notice" hidden role="alert"></p>
+    <section id="explore">
+      <div class="section-title"><p class="eyebrow">01 / Explore the demonstration</p><h2>The same demand can create different pressure.</h2><p>Choose a scenario and time. The score is synthetic demand divided by configured resource units. It is a relative signal, not a probability of receiving an order.</p></div>
+      <div class="controls" data-interactive hidden>
+        <label>Scenario<select id="scenario"><option value="monday">Monday</option><option value="sunday">Sunday</option><option value="new-year">New Year</option></select></label>
+        <label class="time-control">Time <output id="time-output" for="time">18:30</output><input id="time" type="range" min="0" max="143" value="111" step="1" aria-label="Time of day"></label>
+        <label>Map colour<select id="metric"><option value="score">Demand per resource unit</option><option value="demand">Synthetic demand</option></select></label>
+      </div>
+      <div class="two-columns">
+        <article class="panel">
+          <div class="panel-heading"><h3>Ten locations, not service boundaries.</h3><span class="tag">Bengaluru</span></div>
+          <div id="map" class="chart map-chart"></div>
+          <p class="caption">Circle size and colour show the selected measure. Numbers identify zones in the table below. The coordinates come from the archived database. The map does not show delivery routes or travel time.</p>
+          <p class="caption">Map data and cartography &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>. The basemap provides current geographic context, not a historical 2019 road snapshot.</p>
+        </article>
+        <article class="panel">
+          <div class="panel-heading"><h3>Demand relative to supply</h3><span class="tag" id="rank-time">18:30</span></div>
+          <div id="ranking" class="ranking"></div>
+          <p id="snapshot-insight" class="insight" aria-live="polite"></p>
+          <p class="caption">Supply is the archived configuration, held constant as the time changes. The 492 units are not 492 verified drivers.</p>
+        </article>
+      </div>
+      <details class="data-table"><summary>Inspect all ten zone values at the selected time.</summary><div class="table-scroll"><table><caption id="zone-caption">Synthetic demand and demo resource units</caption><thead><tr><th scope="col">Zone</th><th scope="col">Demand</th><th scope="col">Resource units</th><th scope="col">Score</th></tr></thead><tbody id="zone-table"></tbody></table></div></details>
+    </section>
+    <section id="analysis">
+      <div class="section-title"><p class="eyebrow">02 / Read the data</p><h2>Different profiles create different decisions.</h2><p>The daily profiles contain 144 intervals each. These are constructed scenarios, not observations collected on specific calendar dates.</p></div>
+      <article class="panel">
+        <div class="panel-heading"><h3>Daily demand profiles</h3><span class="tag">Sum across ten columns</span></div>
+        <div class="legend"><span><i class="monday"></i>Monday</span><span><i class="sunday"></i>Sunday</span><span><i class="new-year"></i>New Year</span></div>
+        <div id="profiles" class="chart"></div>
+        <p id="profile-insight" class="insight"></p>
+        <p class="caption">The New Year file starts at 12:00 and wraps through the day. This report sorts its 24-hour labels. It does not reinterpret a noon peak as midnight.</p>
+      </article>
+      <article class="panel">
+        <div class="panel-heading"><h3>How demand varies by zone and hour</h3><span class="tag" id="heatmap-scenario">Monday</span></div>
+        <div id="heatmap" class="chart wide-chart"></div>
+        <p class="caption">Each cell is the mean of six ten-minute values. Darker cells indicate higher synthetic demand. Column-to-zone pairing follows the original demo's ID order; the files do not establish learned geographic relationships. Scroll within the chart on a small screen.</p>
+      </article>
+      <div class="two-columns">
+        <article class="panel">
+          <div class="panel-heading"><h3>Four weeks of constructed demand</h3><span class="tag">SyntheticData2.csv</span></div>
+          <div id="sequence" class="chart"></div>
+          <p class="caption">Bars show each day's total. The shaded final week is reserved for the new baseline comparison. Day numbers are sequence positions, not calendar dates.</p>
+        </article>
+        <article class="panel">
+          <div class="panel-heading"><h3>A simple forecasting benchmark</h3><span class="tag">2026 retrospective check</span></div>
+          <div id="baselines" class="ranking"></div>
+          <p id="baseline-insight" class="insight"></p>
+          <p class="caption">Lower mean absolute error is better. The final 1,008 rows contain 10,080 target values. These are rolling one-step baselines; earlier observed values are available. They are not held-out results from the archived LSTM.</p>
+        </article>
+      </div>
+    </section>
+    <section id="experiment">
+      <div class="section-title"><p class="eyebrow">03 / Test the idea</p><h2>Moving supply changes both ends of the journey.</h2><p>Transfer demo resource units between two zones. This arithmetic experiment keeps the total at 492 and leaves demand unchanged. It does not simulate trips or predict what drivers would do.</p></div>
+      <div class="experiment panel">
+        <div class="controls" data-interactive hidden>
+          <label>Move units from<select id="origin"></select></label><label>Move units to<select id="destination"></select></label>
+          <label class="time-control">Units to move <output id="units-output" for="units">10</output><input id="units" type="range" min="0" max="84" value="10" step="1"></label>
+          <button id="reset" class="button" type="button">Reset transfer</button>
+        </div>
+        <div id="transfer-result" aria-live="polite"></div>
+        <div id="transfer-bars" class="ranking"></div>
+        <p class="caption">Scores use demand / max(resource units, 1), matching the demo. A zero-resource zone therefore uses a denominator of one. That convention prevents division by zero but is not an operational forecast.</p>
+      </div>
+    </section>
+    <section id="method">
+      <div class="section-title"><p class="eyebrow">04 / Method and engineering</p><h2>Separate the working demo from the model experiment.</h2></div>
+      <div class="architecture" aria-label="Working demonstration architecture"><div><strong>Android client</strong><span>Requests locations and displays weighted map points.</span></div><b aria-hidden="true">&rarr;</b><div><strong>Django + DRF</strong><span>Validates requests and reads a selected CSV interval.</span></div><b aria-hidden="true">&rarr;</b><div><strong>SQLite + CSV</strong><span>Stores demo supply and ten-zone demand profiles.</span></div></div>
+      <div class="two-columns">
+        <article class="panel"><h3>What the repository contains</h3><ul>
+          <li>Three daily CSV profiles contain 432 rows and 4,320 synthetic demand values in total.</li>
+          <li>Two training CSVs each contain 4,032 rows and ten features. The notebook uses <code>SyntheticData2.csv</code>.</li>
+          <li>The SQLite snapshot defines ten zones, 492 resource units and only two driver-location records.</li>
+          <li>The original presentation and Android screenshot document the hackathon concept.</li>
+        </ul></article>
+        <article class="panel"><h3>What the model experiment establishes</h3><ul>
+          <li>The Keras notebook uses a one-step look-back, ten LSTM units, 0.5 dropout and a ten-output dense layer.</li>
+          <li>Training uses Adam, mean absolute error, 100 epochs and a batch size of 20.</li>
+          <li>The notebook trains on the full constructed sequence. It contains no held-out evaluation.</li>
+          <li>The API reads CSV values. It does not call the saved LSTM. Model quality and current model compatibility remain unverified.</li>
+        </ul></article>
+      </div>
+      <article class="panel"><h3>How this report was produced</h3><ol class="method-list">
+        <li><strong>Read the original files.</strong> Python's <code>csv</code>, <code>sqlite3</code> and <code>statistics</code> modules export the profiles, zone configuration and baseline errors. The original database is opened read-only.</li>
+        <li><strong>Align the demonstration.</strong> Normalised clock labels put each profile in time order. Zone IDs establish the same ten-column pairing used by the demo.</li>
+        <li><strong>Make comparisons explicit.</strong> Demand totals describe synthetic profiles. Scores divide demand by the archived resource configuration. Baselines use lags of one interval, one day and one week.</li>
+        <li><strong>Keep the report portable.</strong> Plain HTML, CSS, JavaScript and SVG power these charts. Pillow prepares the cached map image. There is no chart framework, live backend or tracking script.</li>
+      </ol><a href="profiles.csv" download>Download the 4,320 chart rows as CSV</a></article>
+      <div class="two-columns">
+        <article class="panel"><h3>Repairs made during the 2026 review</h3><ul>
+          <li>Same-zone location updates no longer increase supply. Cross-zone moves conserve resource units.</li>
+          <li>New drivers retain their requested ID. Invalid inputs and insufficient origin supply return explicit errors.</li>
+          <li>Exact clock matching replaces ambiguous substring matching. File paths no longer depend on the working directory.</li>
+          <li>The local CSV demo runs on Django 5.2 without loading TensorFlow. Live inference returns an explicit unsupported response.</li>
+          <li>The Android source now parses JSON, checks permissions, uses actual location callbacks and refreshes after a successful update.</li>
+        </ul></article>
+        <article class="panel"><h3>Limits that still matter</h3><ul>
+          <li>Synthetic data cannot establish real demand, earnings, service quality or the value of relocation.</li>
+          <li>Nearest-coordinate matching ignores roads, traffic, travel time and service-area boundaries.</li>
+          <li>Drivers moving towards the same hotspot could create a new imbalance. This prototype does not model that response.</li>
+          <li>The resource weights of seven and ten are inherited demo mechanics, not individual driver counts.</li>
+          <li>The Android project uses a legacy Instant App toolchain. Source fixes are not a verified Android build or runtime test.</li>
+        </ul></article>
+      </div>
+    </section>
+    <section id="conclusion" class="conclusion">
+      <p class="eyebrow">05 / Conclusion</p><h2>The useful idea is the comparison, not an accuracy claim.</h2>
+      <div class="two-columns"><div><h3>What this project demonstrates</h3><ul><li>A zone with more demand is not necessarily the zone with the greatest demand per resource unit.</li><li>A map can make that comparison visible while leaving the relocation decision with the workforce.</li><li>The reconstructed demo makes the data flow inspectable, from CSV values through API scoring to the map.</li></ul></div><div><h3>What would need evidence next</h3><ul><li>Real, time-aligned demand and availability data would be needed before evaluating the scoring rule.</li><li>A forecast should beat simple seasonal baselines on unseen real data before it supports operational decisions.</li><li>A relocation policy would need travel costs, capacity constraints and a controlled evaluation of service outcomes.</li></ul></div></div>
+      <p>The achievement here is a nationally placed team prototype and a clear product experiment. The archived evidence does not support a claim of production deployment or measured business impact.</p>
+    </section>
+    <footer>
+      <div><h3>Team 7: Throttling-Error</h3><p>Abhirup Mondal, Pooja Agarwal, Rishabh Jain and Sanket Jain.</p><p>Project: 2019. Retrospective report and repair work: 2026.</p></div>
+      <div><a href="https://github.com/rishabhjain9196/ZomatoHack---Throttling-Error">Repository and original artifacts</a><a href="https://rishabhjain9196.github.io/">Rishabh Jain's portfolio</a><a href="#top">Back to the top</a></div>
+    </footer>
+  </main>
+</body>
+</html>
